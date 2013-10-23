@@ -4,13 +4,11 @@
 
 Written by the Syrian watermelon
 
-Email : [batikhsouri@gmail.com](mailto:batikhsouri@gmail.com)
-
-Twitter : [@BatikhSouri](https://twitter.com/BatikhSouri)
-
+Email : [batikhsouri@gmail.com](mailto:batikhsouri@gmail.com)  
+Twitter : [@BatikhSouri](https://twitter.com/BatikhSouri)  
 Github : [https://github.com/BatikhSouri](https://github.com/BatikhSouri)
 
-### Introduction
+## Introduction
 
 HPKA is an extension of the HTTP protocol that aims to authenticate users through public key authentication.
 
@@ -18,7 +16,7 @@ It has some features that are useful when you want to run a distributed, federat
 
 It would allow adhoc user authentication, registration, backup (TODO), server transfer (TODO) and complete deletion.
 
-### Technical overview
+## Technical overview
 
 On each HTTP request, the client appends some headers :
 
@@ -31,7 +29,7 @@ If the headers mentioned above are not present in the HTTP request, then add a "
 
 If some error occured or some mistake was made in the request, the reponse will have it's status code == 445. In addition to that, it will also carry an additional "HPKA-Error" header; it's value will be just an error number according to the HPKA-Error protocol described below
 
-### Security overview
+## Security overview
 
 A similar system (client pub key auth) has been implemented through TLS/SSL client certificates. However, the authentication there is done on TLS/SSL level and not HTTP. Furthermore, client certificates are delivered by the server/service and are signed by a CA on delivery. That last point means that you should be trusting the CA.
 
@@ -46,7 +44,7 @@ Note that the this module, as of now, uses the NIST-designed curves for ECDSA si
 **Side note:**  
 Further on, I'll say in the small threat model below that a service using HPKA should be hosted somehow securely (HSTS or Tor hidden service). I know there is a contradiction between HSTS and the fact we maybe shouldn't trust CAs as much as we do. But, we can actually do without them in our case : a user will call the same server many times, so certificate pinning of a self-signed cert should be enough. Otherwise, for first time users there isn't a way as much accepted/used as TLS/SSL for authenticating a server.
 
-### Threat model
+## Threat model
 
 We describe here our assumptions about the user's computer, and what an attacker can achieve :
 
@@ -59,6 +57,8 @@ We describe here our assumptions about the user's computer, and what an attacker
 * Assumptions about the server:
 	* The server has HPKA prorperly implemented
 	* The server can refuse a new user registration (attacker could guess usernames then)
+
+## Protocols
 
 ### HPKA-Req protocol
 
@@ -196,3 +196,14 @@ The process here ressembles to the one described above. The bootstrap is the onl
 This process complements the HPKA transfer/deletion protocol. You can use it to transfer your account to an other server, or restore your account to some point in time (which can be useful, depending on what kind of service you deal with). The process goes as follows:
 
 * The user sends a POST request on the server's home page, containing an "archive" field (where it is a simple HTTP upload). The request should contain
+
+## Libraries
+
+As of now, I have written two libraries for HPKA 0.1 :
+
+* [node-hpka](https://github.com/Tashweesh/node-hpka) : server-side authentication library for Node.js, acts as an expressjs middleware
+* [cpp-hpka](https://github.com/Tashweesh/ccp-hpka) : some C++ classes with static methods, letting you building [HPKA client payloads](#hpka-req-protocol). (Doesn't manage the network connections though)
+
+## Example apps
+
+I have written examples that use HPKA (a server in Node.js and a  C++/Qt client). Once registered and authenticated, the user can post messages accessible only when s/he is logged in. You can have a look at them [here](https://github.com/Tashweesh/hpka-example)
