@@ -103,6 +103,18 @@ __The Req payload is constructed as follows :__
 
 Finally, the built payload is Base64 encoded (because of how HTTP is built, it should be without line breaks). After encoding, this blob is signed by the user's private key (corresponding to the public key info in the blob obviously)
 
+__ActionType :__
+
+Here are the possible values for the ActionType field, depending on the type of the actual request.
+
+Value | Meaning
+------|--------
+0x00  | Normal (authenticated) HTTP request
+0x01  | Registration
+0x02  | Archive download/backup
+0x03  | Transfer/Delete
+0x04  | Restore/TimeMachine
+
 __CurveID :__  
 Here are the possible values for the curveID field, and to what curve they correspond
 
@@ -141,19 +153,9 @@ Here are the possible values for the curveID field, and to what curve they corre
  0x8F    | sect409k1
  0x90    | sect571r1
  0x91    | sect571k1
+
+**A question you might ask yourself: Why are you appending 10 random bytes to the end of the payload before signing it?** Entropy, please. Each of the signing algos have a limited number of signatures possible for a given message. So if we don't append some random bytes as part of the signed blob, then at some point it is likely that one or more users run out of unique signatures. Actually I had this idea when I didn't include a timestamp as part of the payload; adding the timestamp somehow implicitly solves the entropy problem. However I didn't remove the 10 random bytes. Note that the [Node.js](https://github.com/Tashweesh/node-hpka) server module doesn't check for the presence of these 10 random bytes.
  
-__ActionType :__
-
-Here are the possible values for the ActionType field, depending on the type of the actual request.
-
-Value | Meaning
-------|--------
-0x00  | Normal (authenticated) HTTP request
-0x01  | Registration
-0x02  | Archive download/backup
-0x03  | Transfer/Delete
-0x04  | Restore/TimeMachine
-
 ### HPKA-Error protocol
 
 Here is the different error numbers for the HPKA-Error header, in case some error occured
@@ -195,7 +197,7 @@ The process here ressembles to the one described above. The bootstrap is the onl
 
 This process complements the HPKA transfer/deletion protocol. You can use it to transfer your account to an other server, or restore your account to some point in time (which can be useful, depending on what kind of service you deal with). The process goes as follows:
 
-* The user sends a POST request on the server's home page, containing an "archive" field (where it is a simple HTTP upload). The request should contain
+* The user sends a POST request on the server's home page, containing an "archive" field (where it is a simple HTTP upload). The request should contain (not finished, obviously.. :p)
 
 ## Libraries
 
