@@ -14,7 +14,7 @@ HPKA is an extension of the HTTP protocol that aims to authenticate users throug
 
 It has some features that are useful when you want to run a distributed, federated network.
 
-It would allow adhoc user authentication, registration, backup (TODO), server transfer (TODO) and complete deletion.
+It would allow adhoc user authentication, registration, deletion and key rotation
 
 ## Technical overview
 
@@ -23,23 +23,23 @@ On each HTTP request, the client appends some headers :
 * HPKA-Req: all the details about the action type, username, public key, as described by the protocol below.
 * HPKA-Signature: the signature of the HPKA-Req field content
 
-We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS. Except if the server keeps a PubKey blob and respective signature history for each user for a rather large period of time (1 month for example). Logging the signatures in that case would be enough, because the payload should stay constant.
+We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS (or a Tor hidden service). The HPKA-Req contains a timestamp, and as of now the [node-hpka](https://github.com/Tashweesh/node-hpka) implementations rejects payload older than 120 seconds. Hence, in case the connection to the server is not encrypted and/or not authenticated, it is possible that an attacker steals an HPKA and uses it within these 2 minutes... This flaw could be dodged by doing some thourough logging server-side for requests youngest than 2 minutes.
 
 If the headers mentioned above are not present in the HTTP request, then add a "HPKA-Available: 1" header when responding to the client.
 
-If some error occured or some mistake was made in the request, the reponse will have it's status code == 445. In addition to that, it will also carry an additional "HPKA-Error" header; it's value will be just an error number according to the HPKA-Error protocol described below
+If some error occured or some mistake was made in the request, the reponse will have it's status code == 445. In addition to that, it will also carry an additional "HPKA-Error" header; it's value will be just an error number according to the HPKA-Error protocol described below
 
 ## Security overview
 
-A similar system (client pub key auth) has been implemented through TLS/SSL client certificates. However, the authentication there is done on TLS/SSL level and not HTTP. Furthermore, client certificates are delivered by the server/service and are signed by a CA on delivery. That last point means that you should be trusting the CA.
+A similar system (client pub key auth) has been implemented through TLS/SSL client certificates. However, the authentication there is done on TLS/SSL level and not HTTP. Furthermore, client certificates are delivered by the server/service and are signed by a CA on delivery. That last point means that it's not possible to use a client certificate to authenticate on an other server (after a transfer, for example)
 
-The difference here with HPKA is that the users generates his own key pair and signs his public key with his private key on registration. Then he appends dedicated HTTP headers on each request, each time with a new signature.
+The difference here with HPKA is that the users generates his own key pair and signs his public key with his private key on registration. Then he appends specific HTTP headers on each request, each time with a new signature.
 
 Furthermore, this technique brings some advantages over usual username/password authentication methods. For example, if a website using this method is "hacked", the hackers can't hack all users at once by dumping a passwords DB. An other example is that it is probably much harder to hack a specific user account because you would have to compromise the user's device first.
 
 For improved security, the user's key file shoud use a passphrase, so in case the user's device is compromised in any way, the account would be compromised if and only if the attacker was able to decrypt the key file through an expensive password attack (assuming the user wouldn't give him the password...)
 
-Note that the this module, as of now, uses the NIST-designed curves for ECDSA signatures. We are aware of the Dual-EC-DRBG NSA backdoor. And some specialists think that there is a good probability that these NIST-designed, NSA-approved curves may be backdoored as well. Aside these, Curve25519 and Ed25519, there aren't lots of other curves used broadly. I plan to extend HPKA for Ed25519/NaCl signatures in upcoming verisons.
+Note that the this protocol, as of now, uses the NIST-designed curves for ECDSA signatures. We are aware of the Dual-EC-DRBG NSA backdoor. And some specialists think that there is a good probability that these NIST-designed, NSA-approved curves may be backdoored as well. Aside these, Curve25519 and Ed25519, there aren't lots of other curves used broadly. I plan to extend HPKA for Ed25519/NaCl signatures in upcoming verisons.
 
 **Side note:**  
 Further on, I'll say in the small threat model below that a service using HPKA should be hosted somehow securely (HSTS or Tor hidden service). I know there is a contradiction between HSTS and the fact we maybe shouldn't trust CAs as much as we do. But, we can actually do without them in our case : a user will call the same server many times, so certificate pinning of a self-signed cert should be enough. Otherwise, for first time users there isn't a way as much accepted/used as TLS/SSL for authenticating a server.
@@ -52,8 +52,8 @@ We describe here our assumptions about the user's computer, and what an attacker
 * The user's computer
 	* Uses a propeerly implemented HPKA client
 	* Is not infected by malware
-* The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, it should be nearly "impossible" to eavesdrop on the connection between the server and the client
-* We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_(algorithm\)) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common, non-Koblitz curves](http://www.secg.org/collateral/sec2_final.pdf) are safe.
+* The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client
+* We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_(algorithm\)) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe.
 * Assumptions about the server:
 	* The server has HPKA prorperly implemented
 	* The server can refuse a new user registration (attacker could guess usernames then)
@@ -111,9 +111,8 @@ Value | Meaning
 ------|--------
 0x00  | Normal (authenticated) HTTP request
 0x01  | Registration
-0x02  | Archive download/backup
-0x03  | Transfer/Delete
-0x04  | Restore/TimeMachine
+0x02  | Key rotation
+0x03  | Account deletion
 
 __CurveID :__  
 Here are the possible values for the curveID field, and to what curve they correspond
@@ -175,29 +174,13 @@ Value | Meaning
 
 When a user wants to register on the website using his public key, he appends the HPKA-Req (with ActionType == 0x01) and HPKA-Signature fields on a GET request on the website's home page. If the username is available, the server registers it and responds to the user with a "normal" reponse (status code = 200). Otherwise it will return status code 406, with a HPKA-Error: 5
 
-### HPKA User data download/backup
+### HPKA User deletion
 
-The user can download the data hosted on the service (FB/Twitter data archive-like system)
+The user sends a signed HPKA-Req header with the corresponding actionType value.
 
-The is done through the following steps:
+### HPKA Key rotation
 
-* The client sends an HPKA authentified GET request on the website's home page. Here are the appended headers
-	* HPKA-Req and HPKA-Signature
-* The server's response will contain "HPKA-BuildArchive: 1" in case it has been accepted
-* The user will continue it's usage of the website (or not) while the his data archive is built
-* On next requests, if the archive is ready, the server will append "HPKA-ArchiveReady: 1" starting from the moment when the archive is ready. It will also append "HPKA-ArchiveLink" header which value is the link to download the archive. The download shold be prohibited if the standard HPKA auth fields are not appended. Once the archive has been downloaded by the user, the archive should be deleted and the link not valid anymore.
-
-### HPKA User account transfer/delete protocol
-
-The HPKA transfer process adds one additional step server side: the deletion of the user content after the archive download.
-
-The process here ressembles to the one described above. The bootstrap is the only difference is that the first request is appended by "HPKA-Transfer: 1"
-
-### HPKA User account restore/upload protocol
-
-This process complements the HPKA transfer/deletion protocol. You can use it to transfer your account to an other server, or restore your account to some point in time (which can be useful, depending on what kind of service you deal with). The process goes as follows:
-
-* The user sends a POST request on the server's home page, containing an "archive" field (where it is a simple HTTP upload). The request should contain (not finished, obviously.. :p)
+The user sends a signed HPKA-Req header with the corresponding actionType value. In addition to that, he sends a json string containing all the public key information in a "HPKA-NewKey" field. This field is signed by both the acutal key and the new key, and the signatures are sent on "HPKA-NewKeySignature" and "HPKA-NewKeySignature2" field.
 
 ## Libraries
 
