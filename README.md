@@ -101,7 +101,7 @@ __The Req payload is constructed as follows :__
 		* publicElement
 * Append 10 random bytes
 
-Finally, the built payload is Base64 encoded (because of how HTTP is built, it should be without line breaks). After encoding, this blob is signed by the user's private key (corresponding to the public key info in the blob obviously)
+Finally, the built payload is Base64 encoded (because of how HTTP is built, it should be without line breaks). After encoding, this blob is signed by the user's private key (corresponding to the public key info in the blob obviously), using SHA1.
 
 __ActionType :__
 
