@@ -10,7 +10,7 @@ Github : [https://github.com/BatikhSouri](https://github.com/BatikhSouri)
 
 ## Introduction
 
-HPKA is an extension of the HTTP protocol that aims to authenticate users through public key authentication.
+HPKA (acronym for HTTP Public Key Authentication) is an extension of the HTTP protocol that aims to authenticate users through public key authentication.
 
 It has some features that are useful when you want to run a distributed, federated network.
 
@@ -28,6 +28,12 @@ We should note that this solution as it is now is not safe from MITM attacks whe
 If the headers mentioned above are not present in the HTTP request, then add a "HPKA-Available: 1" header when responding to the client.
 
 If some error occured or some mistake was made in the request, the reponse will have it's status code == 445. In addition to that, it will also carry an additional "HPKA-Error" header; it's value will be just an error number according to the HPKA-Error protocol described below
+
+The signature algorithms that could be used (as of now) in HPKA are :
+
+* [RSA](http://en.wikipedia.org/wiki/RSA_(algorithm\))
+* [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm)
+* [ECDSA](http://en.wikipedia.org/wiki/ECDSA)
 
 ## Security overview
 
@@ -191,4 +197,4 @@ As of now, I have written two libraries for HPKA 0.1 :
 
 ## Example apps
 
-I have written examples that use HPKA (a server in Node.js and a  C++/Qt client). Once registered and authenticated, the user can post messages accessible only when s/he is logged in. You can have a look at them [here](https://github.com/Tashweesh/hpka-example)
+I have written examples that use HPKA (a server in Node.js and a  C++/Qt client). Once registered and authenticated, the user can post messages accessible only when s/he is logged in. You can have a look at them [here](https://github.com/Tashweesh/hpka-example). Sorry if it is still badly documented.
