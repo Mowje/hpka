@@ -105,7 +105,6 @@ __The Req payload is constructed as follows :__
 		* base
 		* publicElement.length (unsigned 16-bit integer)
 		* publicElement
-* Append 10 random bytes
 
 Finally, the built payload is Base64 encoded (because of how HTTP is built, it should be without line breaks). After encoding, this blob is signed by the user's private key (corresponding to the public key info in the blob obviously), using SHA1.
 
@@ -158,8 +157,6 @@ Here are the possible values for the curveID field, and to what curve they corre
  0x8F    | sect409k1
  0x90    | sect571r1
  0x91    | sect571k1
-
-**A question you might ask yourself: Why are you appending 10 random bytes to the end of the payload before signing it?** Entropy, please. Each of the signing algos have a limited number of signatures possible for a given message. So if we don't append some random bytes as part of the signed blob, then at some point it is likely that one or more users run out of unique signatures. Actually I had this idea when I didn't include a timestamp as part of the payload; adding the timestamp somehow implicitly solves the entropy problem. However I didn't remove the 10 random bytes. Note that the [Node.js](https://github.com/Tashweesh/node-hpka) server module doesn't check for the presence of these 10 random bytes.
  
 ### HPKA-Error protocol
 
