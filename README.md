@@ -56,10 +56,10 @@ We describe here our assumptions about the user's computer, and what an attacker
 
 * The user acts reasonably. He would not give the password of his key file to an attacker for example
 * The user's computer
-	* Uses a propeerly implemented HPKA client
+	* Uses a properly implemented HPKA client
 	* Is not infected by malware
 * The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client
-* We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_(algorithm\)) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe.
+* We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_(algorithm\)) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA.
 * Assumptions about the server:
 	* The server has HPKA prorperly implemented
 	* The server can refuse a new user registration (attacker could guess usernames then)
@@ -172,18 +172,22 @@ Value | Meaning
 0x06  | Forbidden action
 0x07  | Unsupported action type
 0x08  | Unknown action type
+0x09  | Invalid new key (when rotating keys)
+0x0A  | Invalid signature for the new key (when rotating keys)
  
 ### HPKA User registration
 
-When a user wants to register on the website using his public key, he appends the HPKA-Req (with ActionType == 0x01) and HPKA-Signature fields on a GET request on the website's home page. If the username is available, the server registers it and responds to the user with a "normal" reponse (status code = 200). Otherwise it will return status code 406, with a HPKA-Error: 5
+When a user wants to register on the website using his public key, he appends the HPKA-Req (with ActionType == 0x01) and HPKA-Signature fields on a GET request on the website's home page. If the username is available, the server registers it and responds to the user with a "normal" reponse (status code = 200). Otherwise it will return status code 445, with a HPKA-Error: 5
+
+If a user wants the server to generate a username for him, the username field from HPKA-Req should be left blank.
 
 ### HPKA User deletion
 
-The user sends a signed HPKA-Req header with the corresponding actionType value.
+The user sends a signed HPKA-Req header with the corresponding actionType value. The HTTP response is a "normal" one (ie, status code = 200) if it succeeds.
 
 ### HPKA Key rotation
 
-The user sends a signed HPKA-Req header with the corresponding actionType value. In addition to that, he sends a json string containing all the public key information in a "HPKA-NewKey" field. This field is signed by both the acutal key and the new key, and the signatures are sent on "HPKA-NewKeySignature" and "HPKA-NewKeySignature2" field.
+The user sends a signed HPKA-Req header with the corresponding actionType value. In addition to that, he sends an other HPKA-Req payload with the containing the new key and with the same actionType value in a "HPKA-NewKey" field. This field is signed by both the acutal key and the new key, and the signatures are respectively sent on "HPKA-NewKeySignature" and "HPKA-NewKeySignature2" fields. The HTTP response is a "normal" one (ie, status code = 200) if it succeeds.
 
 ## Libraries
 
