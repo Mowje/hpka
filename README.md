@@ -21,7 +21,7 @@ It would allow adhoc user authentication, registration, deletion and key rotatio
 On each HTTP request, the client appends some headers :
 
 * HPKA-Req: all the details about the action type, username, public key, as described by the protocol below.
-* HPKA-Signature: the signature of the HPKA-Req field content
+* HPKA-Signature: the signature of the HPKA-Req field content, hex-encoded
 
 We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS (or a Tor hidden service). The HPKA-Req contains a timestamp, and as of now the [node-hpka](https://github.com/Tashweesh/node-hpka) implementations rejects payload older than 120 seconds. Hence, in case the connection to the server is not encrypted and/or not authenticated, it is possible that an attacker steals an HPKA and uses it within these 2 minutes... This flaw could be dodged by doing some thourough logging server-side for requests youngest than 2 minutes.
 
@@ -106,7 +106,7 @@ __The Req payload is constructed as follows :__
 		* publicElement.length (unsigned 16-bit integer)
 		* publicElement
 
-Finally, the built payload is Base64 encoded (because of how HTTP is built, it should be without line breaks). After encoding, this blob is signed by the user's private key (corresponding to the public key info in the blob obviously), using SHA1.
+Finally, the built payload is Base64 encoded (because of how HTTP is built, it should be without line breaks). After encoding, this blob is signed by the user's private key (corresponding to the public key info in the blob obviously), using SHA1. The signature is hex-encoded then put in a "HPKA-Signature" header.
 
 __ActionType :__
 
