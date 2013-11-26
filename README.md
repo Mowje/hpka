@@ -58,6 +58,7 @@ We describe here our assumptions about the user's computer, and what an attacker
 * The user's computer
 	* Uses a properly implemented HPKA client
 	* Is not infected by malware
+	* Can re-use the same HPKA payload as long as it is younger than 120 seconds
 * The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client
 * We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_(algorithm\)) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA.
 * Assumptions about the server:
@@ -174,6 +175,7 @@ Value | Meaning
 0x08  | Unknown action type
 0x09  | Invalid new key (when rotating keys)
 0x0A  | Invalid signature for the new key (when rotating keys)
+0x0B  | Username field can't be left blank
  
 ### HPKA User registration
 
