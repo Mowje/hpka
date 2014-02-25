@@ -18,7 +18,7 @@ It would allow adhoc user authentication, registration, deletion and key rotatio
 
 ## Technical overview
 
-On each HTTP request, the client appends some headers :
+On each HTTP request, the client appends some headers. This can happen regardless of what HTTP verb is used :
 
 * HPKA-Req: all the details about the action type, username, public key, as described by the protocol below.
 * HPKA-Signature: the signature of the HPKA-Req field content, hex-encoded
@@ -58,12 +58,9 @@ We describe here our assumptions about the user's computer, and what an attacker
 * The user's computer
 	* Uses a properly implemented HPKA client
 	* Is not infected by malware
-	* Can re-use the same HPKA payload as long as it is younger than 120 seconds
 * The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client
+* The server must check that timestamps of requests are "incremental", and that the same timestamp can't be used more than
 * We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_(algorithm\)) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA.
-* Assumptions about the server:
-	* The server has HPKA prorperly implemented
-	* The server can refuse a new user registration (attacker could guess usernames then)
 
 ## Protocols
 
