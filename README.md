@@ -34,6 +34,7 @@ The signature algorithms that could be used (as of now) in HPKA are :
 * [RSA](http://en.wikipedia.org/wiki/RSA_(algorithm\))
 * [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm)
 * [ECDSA](http://en.wikipedia.org/wiki/ECDSA)
+* [Ed25519 (the current NaCl & libsodium implementation)](http://nacl.cr.yp.to/sign.html)
 
 ## Security overview
 
@@ -45,7 +46,7 @@ Furthermore, this technique brings some advantages over usual username/password 
 
 For improved security, the user's key file shoud use a passphrase, so in case the user's device is compromised in any way, the account would be compromised if and only if the attacker was able to decrypt the key file through an expensive password attack (assuming the user wouldn't give him the password...)
 
-Note that the this protocol, as of now, uses the NIST-designed curves for ECDSA signatures. We are aware of the Dual-EC-DRBG NSA backdoor. And some specialists think that there is a good probability that these NIST-designed, NSA-approved curves may be backdoored as well. Aside these, Curve25519 and Ed25519, there aren't lots of other curves used broadly. I plan to extend HPKA for Ed25519/NaCl signatures in upcoming verisons.
+~~Note that the this protocol, as of now, uses the NIST-designed curves for ECDSA signatures. We are aware of the Dual-EC-DRBG NSA backdoor. And some specialists think that there is a good probability that these NIST-designed, NSA-approved curves may be backdoored as well. Aside these, Curve25519 and Ed25519, there aren't lots of other curves used broadly. I plan to extend HPKA for Ed25519/NaCl signatures in upcoming verisons.~~
 
 **Side note:**  
 Further on, I'll say in the small threat model below that a service using HPKA should be hosted somehow securely (HSTS or Tor hidden service). I know there is a contradiction between HSTS and the fact we maybe shouldn't trust CAs as much as we do. But, we can actually do without them in our case : a user will call the same server many times, so certificate pinning of a self-signed cert should be enough. Otherwise, for first time users there isn't a way as much accepted/used as TLS/SSL for authenticating a server.
@@ -60,7 +61,7 @@ We describe here our assumptions about the user's computer, and what an attacker
 	* Is not infected by malware
 * The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client
 * The server must check that timestamps of requests are "incremental", and that the same timestamp can't be used more than
-* We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_(algorithm\)) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA.
+* We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_(algorithm\)) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA. Same thing for Ed25519.
 
 ## Protocols
 
@@ -70,6 +71,7 @@ __NOTES :__
 
 * Everything is stored in Big Endian
 * No encoding is used for key's elements
+* Lenghts are expressed in bytes
 
 __The Req payload is constructed as follows :__
 
@@ -82,6 +84,7 @@ __The Req payload is constructed as follows :__
 	* 0x01 for ECDSA
 	* 0x02 for RSA
 	* 0x04 for DSA
+	* 0x08 for Ed25519
 * Then, depending on the key type
 	* If keyType == ECDSA (== 0x01)
 		* publicPoint.x.length (unsigned 16-bit integer)
@@ -103,6 +106,9 @@ __The Req payload is constructed as follows :__
 		* base
 		* publicElement.length (unsigned 16-bit integer)
 		* publicElement
+	* If keyType == Ed25519 (== 0x08)
+		* publicKey.length (unsigned 16-bit integer) (note that it will usually be always the same size, ie 32)
+		* publicKey
 
 Finally, the built payload is Base64 encoded (because of how HTTP is built, it should be without line breaks). After encoding, this blob is signed by the user's private key (corresponding to the public key info in the blob obviously), using SHA1. The signature is hex-encoded then put in a "HPKA-Signature" header.
 
