@@ -107,10 +107,10 @@ __The Req payload is constructed as follows :__
 		* publicElement.length (unsigned 16-bit integer)
 		* publicElement
 	* If keyType == Ed25519 (== 0x08)
-		* publicKey.length (unsigned 16-bit integer) (note that it will usually be always the same size, ie 32)
+		* publicKey.length (unsigned 16-bit integer) (note that it will usually be always the same size, ie 32 bytes)
 		* publicKey
 
-Finally, the built payload is Base64 encoded (because of how HTTP is built, it should be without line breaks). After encoding, this blob is signed by the user's private key (corresponding to the public key info in the blob obviously), using SHA1. The signature is hex-encoded then put in a "HPKA-Signature" header.
+Finally, the built payload is Base64 encoded (because of how HTTP is built, it should be without line breaks). After encoding, this blob is signed by the user's private key (corresponding to the public key info in the blob obviously), using SHA1 (except Ed25519 signatures). The signature is hex-encoded then put in a "HPKA-Signature" header.
 
 __ActionType :__
 
