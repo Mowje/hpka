@@ -179,6 +179,8 @@ Value | Meaning
 0x09  | Invalid new key (when rotating keys)
 0x0A  | Invalid signature for the new key (when rotating keys)
 0x0B  | Username field can't be left blank
+0x0C  | Forbidden key type (has to be managed in app level)
+0x0D  | Invalid route (has to be managed in app level; suppose you want to force registration on a specific route...)
  
 ### HPKA User registration
 
@@ -199,8 +201,8 @@ The user sends a signed HPKA-Req header with the corresponding actionType value.
 As of now, I have written two libraries for HPKA 0.1 :
 
 * [node-hpka](https://github.com/Tashweesh/node-hpka) : server-side authentication library for Node.js, acts as an expressjs middleware
-* [cpp-hpka](https://github.com/Tashweesh/ccp-hpka) : some C++ classes with static methods, letting you building [HPKA client payloads](#hpka-req-protocol). (Doesn't manage the network connections though)
+* [cpp-hpka](https://github.com/Tashweesh/ccp-hpka) : some C++ classes with static methods, letting you build [HPKA client payloads](#hpka-req-protocol). Depends on [Crypto++](http://cryptopp.com) (Doesn't manage the network connections though)
 
 ## Example apps
 
-I have written examples that use HPKA (a server in Node.js and a  C++/Qt client). Once registered and authenticated, the user can post messages accessible only when s/he is logged in. You can have a look at them [here](https://github.com/Tashweesh/hpka-example). Sorry if it is still badly documented.
+I have written examples that use HPKA (a server in Node.js and a C++/Qt client). Once registered and authenticated, the user can post messages accessible only when s/he is logged in. You can have a look at them [here](https://github.com/Tashweesh/hpka-example). Sorry if it is still badly documented.
