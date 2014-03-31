@@ -73,7 +73,7 @@ __NOTES :__
 * No encoding is used for key's elements
 * Lenghts are expressed in bytes
 
-__The Req payload is constructed as follows :__
+__The Req payload is constructed as follows (in that order) :__
 
 * Version number : one byte. Only value for now: 0x01
 * UTC Unix Epoch (timestamp since 1-1-1970 00:00:00 UTC, in seconds) (8 bytes long)
@@ -170,18 +170,20 @@ Value | Meaning
 ------|---------
 0x01  | Malformed request
 0x02  | Invalid signature
-0x03  | Invalid key
-0x04  | Non registered user
-0x05  | Username not available (on registration)
-0x06  | Forbidden action
-0x07  | Unsupported action type
-0x08  | Unknown action type
-0x09  | Invalid new key (when rotating keys)
+0x03  | Invalid key *
+0x04  | Unregistered user *
+0x05  | Username not available (on registration) *
+0x06  | Forbidden action *
+0x07  | Unsupported action type *
+0x08  | Unknown action type *
+0x09  | Invalid new key (when rotating keys) *
 0x0A  | Invalid signature for the new key (when rotating keys)
-0x0B  | Username field can't be left blank
-0x0C  | Forbidden key type (has to be managed in app level)
-0x0D  | Invalid route (has to be managed in app level; suppose you want to force registration on a specific route...)
- 
+0x0B  | Username field can't be left blank *
+0x0C  | Forbidden key type *
+0x0D  | Invalid route *
+
+Note : Error codes marked with a "*" means that these errors have to be managed on the application level.  
+
 ### HPKA User registration
 
 When a user wants to register on the website using his public key, he appends the HPKA-Req (with ActionType == 0x01) and HPKA-Signature fields on a GET request on the website's home page. If the username is available, the server registers it and responds to the user with a "normal" reponse (status code = 200). Otherwise it will return status code 445, with a HPKA-Error: 5
