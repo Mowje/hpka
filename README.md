@@ -168,19 +168,19 @@ Here is the different error numbers for the HPKA-Error header, in case some erro
 
 Value | Meaning
 ------|---------
-0x01  | Malformed request
-0x02  | Invalid signature
-0x03  | Invalid key *
-0x04  | Unregistered user *
-0x05  | Username not available (on registration) *
-0x06  | Forbidden action *
-0x07  | Unsupported action type *
-0x08  | Unknown action type *
-0x09  | Invalid new key (when rotating keys) *
-0x0A  | Invalid signature for the new key (when rotating keys)
-0x0B  | Username field can't be left blank *
-0x0C  | Forbidden key type *
-0x0D  | Invalid route *
+  1   | Malformed request
+  2   | Invalid signature
+  3   | Invalid key *
+  4   | Unregistered user *
+  5   | Username not available (on registration) *
+  6   | Forbidden action *
+  7   | Unsupported action type *
+  8   | Unknown action type *
+  9   | Invalid new key (when rotating keys) *
+  10  | Invalid signature for the new key (when rotating keys)
+  11  | Username field can't be left blank *
+  12  | Forbidden key type *
+  13  | Invalid route *
 
 Note : Error codes marked with a "*" means that these errors have to be managed on the application level.  
 
