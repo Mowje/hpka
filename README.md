@@ -53,7 +53,7 @@ Further on, I'll say in the small threat model below that a service using HPKA s
 
 ## Threat model
 
-We describe here our assumptions about the user's computer, and what an attacker can achieve :
+We describe here our assumptions about the user's computer, and what an attacker can achieve (probably incomplete) :
 
 * The user acts reasonably. He would not give the password of his key file to an attacker for example
 * The user's computer
@@ -61,7 +61,7 @@ We describe here our assumptions about the user's computer, and what an attacker
 	* Is not infected by malware
 * The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client
 * The server must check that timestamps of requests are "incremental", and that the same timestamp can't be used more than
-* We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_(algorithm\)) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA. Same thing for Ed25519.
+* We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_cryptosystem) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA. Same thing for Ed25519.
 
 ## Protocols
 
@@ -72,6 +72,7 @@ __NOTES :__
 * Everything is stored in Big Endian
 * No encoding is used for key's elements
 * Lenghts are expressed in bytes
+* As of now, the [Ed25519 signature format](http://blog.mozilla.org/warner/files/2011/11/key-formats.png) used here is the SUPERCOP one. We might want get rid of the "message part" of the signature, since it could be reconstructed by the server (message = decoded HPKA-Req blob)
 
 __The Req payload is constructed as follows (in that order) :__
 
