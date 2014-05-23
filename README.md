@@ -31,7 +31,7 @@ If some error occured or some mistake was made in the request, the reponse will 
 
 The signature algorithms that could be used (as of now) in HPKA are :
 
-* [RSA](http://en.wikipedia.org/wiki/RSA_(algorithm\))
+* [RSA](http://en.wikipedia.org/wiki/RSA_cryptosystem)
 * [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm)
 * [ECDSA](http://en.wikipedia.org/wiki/ECDSA)
 * [Ed25519 (the current NaCl & libsodium implementation)](http://nacl.cr.yp.to/sign.html)
@@ -161,7 +161,7 @@ Here are the possible values for the curveID field, and to what curve they corre
  0x8F    | sect409k1
  0x90    | sect571r1
  0x91    | sect571k1
- 
+
 ### HPKA-Error protocol
 
 Here is the different error numbers for the HPKA-Error header, in case some error occured
