@@ -2,7 +2,9 @@
 
 ----------------------------------------------------
 
-Written by the Syrian watermelon
+**This is still a draft spec, and is soon subject to change. I discovered the possibility to do replay attacks with this current spec**
+
+Written by Ahmad Ben Mrad
 
 Email : [batikhsouri@gmail.com](mailto:batikhsouri@gmail.com)  
 Twitter : [@BatikhSouri](https://twitter.com/BatikhSouri)  
