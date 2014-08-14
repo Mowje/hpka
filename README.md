@@ -2,7 +2,7 @@
 
 ----------------------------------------------------
 
-**This is still a draft spec, and is soon subject to change. I discovered the possibility to do replay attacks with this current spec**
+**This is still a draft spec and is potentially subject to change**
 
 Written by Ahmad Ben Mrad
 
@@ -23,7 +23,7 @@ It would allow adhoc user authentication, registration, deletion and key rotatio
 On each HTTP request, the client appends some headers. This can happen regardless of what HTTP verb is used :
 
 * HPKA-Req: all the details about the action type, username, public key, as described by the protocol below.
-* HPKA-Signature: the signature of the HPKA-Req field content, hex-encoded
+* HPKA-Signature: the signature of the HPKA-Req field content with the host/path of the request concatenated to it (as part of the signed content)
 
 We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS (or a Tor hidden service). The HPKA-Req contains a timestamp, and as of now the [node-hpka](https://github.com/Tashweesh/node-hpka) implementations rejects payload older than 120 seconds. Hence, in case the connection to the server is not encrypted and/or not authenticated, it is possible that an attacker steals an HPKA and uses it within these 2 minutes... This flaw could be dodged by doing some thourough logging server-side for requests youngest than 2 minutes.
 
@@ -36,22 +36,23 @@ The signature algorithms that could be used (as of now) in HPKA are :
 * [RSA](http://en.wikipedia.org/wiki/RSA_cryptosystem)
 * [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm)
 * [ECDSA](http://en.wikipedia.org/wiki/ECDSA)
-* [Ed25519 (the current NaCl & libsodium implementation)](http://nacl.cr.yp.to/sign.html)
+* [Ed25519 (SUPERCOP implementation, as used in libsodium)](http://doc.libsodium.org/public-key_cryptography/public-key_signatures.html)
 
 ## Security overview
 
-A similar system (client pub key auth) has been implemented through TLS/SSL client certificates. However, the authentication there is done on TLS/SSL level and not HTTP. Furthermore, client certificates are delivered by the server/service and are signed by a CA on delivery. That last point means that it's not possible to use a client certificate to authenticate on an other server (after a transfer, for example)
+A similar system (client public key authentication) has been implemented through TLS/SSL client certificates. However, the authentication there is done on TLS/SSL level and not HTTP. Furthermore, client certificates are delivered by the server/service and are signed by a CA on delivery. That last point means that it's not possible to use a client certificate to authenticate on an other server that wouldn't recognize the CA used by the server on which the account as created (after an account transfer, for example); hence there would be a CA-dependency, which is potentially something you want to get rid off when you want to run a distributed network of servers.
 
 The difference here with HPKA is that the users generates his own key pair and signs his public key with his private key on registration. Then he appends specific HTTP headers on each request, each time with a new signature.
 
-Furthermore, this technique brings some advantages over usual username/password authentication methods. For example, if a website using this method is "hacked", the hackers can't hack all users at once by dumping a passwords DB. An other example is that it is probably much harder to hack a specific user account because you would have to compromise the user's device first.
+Furthermore, this technique brings some advantages over usual username/password authentication methods. For example, if a badly-built website using that traditional method is "hacked", the hackers can't hack all users at once by dumping a passwords or hashes DB. An other example is that, given a "flawless" web application that uses HPKA, it is probably much harder to hack a specific user account because you would have to compromise the user's device first on order to get the user's private key.
 
-For improved security, the user's key file shoud use a passphrase, so in case the user's device is compromised in any way, the account would be compromised if and only if the attacker was able to decrypt the key file through an expensive password attack (assuming the user wouldn't give him the password...)
+For improved security, the user's key file should use a passphrase, so in case the user's device is compromised in any way, the account would be compromised if and only if the attacker was able to decrypt the key file through an expensive password attack (assuming the user wouldn't give him the password...)
 
-~~Note that the this protocol, as of now, uses the NIST-designed curves for ECDSA signatures. We are aware of the Dual-EC-DRBG NSA backdoor. And some specialists think that there is a good probability that these NIST-designed, NSA-approved curves may be backdoored as well. Aside these, Curve25519 and Ed25519, there aren't lots of other curves used broadly. I plan to extend HPKA for Ed25519/NaCl signatures in upcoming verisons.~~
+**Note about the use of the ECDSA:**  
+This protocol supports ECDSA signatures. Note that this algorithm uses the NIST-designed, NSA-approved elliptic curves. We are aware of the Dual-EC-DRBG backdoor implanted by the NSA. And specialists are supposing that these elliptic curves used in ECDSA are also potentially backdoored, because they use magic constants without clear rationale (unlike the curve used in Curve25519/Ed25519 that have been openly specified by researchers from the academic world, and not by government contractors; motives please). So please keep that in mind when using HPKA with ECDSA signatures.
 
-**Side note:**  
-Further on, I'll say in the small threat model below that a service using HPKA should be hosted somehow securely (HSTS or Tor hidden service). I know there is a contradiction between HSTS and the fact we maybe shouldn't trust CAs as much as we do. But, we can actually do without them in our case : a user will call the same server many times, so certificate pinning of a self-signed cert should be enough. Otherwise, for first time users there isn't a way as much accepted/used as TLS/SSL for authenticating a server.
+**Side note about TLS and CAs:**  
+Further on, I'll say in the small threat model below that a service using HPKA should be hosted somehow securely (HSTS or Tor hidden service). I know there is a contradiction between HSTS and the fact we maybe shouldn't trust CAs as much as we do. But, we can actually do without them in our case : a user will call the same server many times, so certificate pinning of a self-signed certificate should be enough. Otherwise, for first time users there isn't a way as much accepted/used as TLS/SSL for authenticating a server.
 
 ## Threat model
 
@@ -61,8 +62,8 @@ We describe here our assumptions about the user's computer, and what an attacker
 * The user's computer
 	* Uses a properly implemented HPKA client
 	* Is not infected by malware
-* The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client
-* The server must check that timestamps of requests are "incremental", and that the same timestamp can't be used more than
+* The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client, in addition to check the integrity of the requests and responses
+* The server must check that timestamps of requests are "incremental"
 * We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_cryptosystem) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA. Same thing for Ed25519.
 
 ## Protocols
@@ -71,10 +72,10 @@ We describe here our assumptions about the user's computer, and what an attacker
 
 __NOTES :__
 
-* Everything is stored in Big Endian
+* Everything is written in Big Endian
 * No encoding is used for key's elements
-* Lenghts are expressed in bytes
-* As of now, the [Ed25519 signature format](http://blog.mozilla.org/warner/files/2011/11/key-formats.png) used here is the SUPERCOP one. We might want get rid of the "message part" of the signature, since it could be reconstructed by the server (message = decoded HPKA-Req blob)
+* Lengths are expressed in bytes
+* For Ed22519, the chosen implementation (the SUPERCOP implementation) implies that by default the produced [signatures have the signed message concatenated to it](http://blog.mozilla.org/warner/files/2011/11/key-formats.png). In our case, this is useless data overhead, since the signed message can be "reconstructed" from the HPKA-Req header, the path and host values used in the HTTP request. Hence in HPKA we use deteched Ed25519 signatures (which are signatures without the signed message appended to it)
 
 __The Req payload is constructed as follows (in that order) :__
 
@@ -113,10 +114,9 @@ __The Req payload is constructed as follows (in that order) :__
 		* publicKey.length (unsigned 16-bit integer) (note that it will usually be always the same size, ie 32 bytes)
 		* publicKey
 
-Finally, the built payload is Base64 encoded (because of how HTTP is built, it should be without line breaks). After encoding, this blob is signed by the user's private key (corresponding to the public key info in the blob obviously), using SHA1 (except Ed25519 signatures). The signature is hex-encoded then put in a "HPKA-Signature" header.
+At this stage, the Req payload is [base64](en.wikipedia.org/wiki/Base64) encoded and then set as the value of the "HPKA-Req" header. That same Req payload (before encoding) has the "hostname/path" string appended (example: "google.com/index.htm"; port numbers are omitted, even if different than 80) to it before being signed (a detached signature, as described earlier); the signature is then base64 encoded as well, before being set as "HPKA-Signature" header value. For signature schemes other than Ed25519, the hash function used is [SHA1](http://en.wikipedia.org/wiki/SHA-1).
 
-__ActionType :__
-
+__ActionType :__  
 Here are the possible values for the ActionType field, depending on the type of the actual request.
 
 Value | Meaning
