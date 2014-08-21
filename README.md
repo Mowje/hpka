@@ -64,7 +64,8 @@ We describe here our assumptions about the user's computer, and what an attacker
 	* Is not infected by malware
 * The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client, in addition to check the integrity of the requests and responses
 * The server must check that timestamps of requests are "incremental"
-* We assume that the security level provided [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_cryptosystem) and [ECDSA](https://en.wikipedia.org/wiki/ECDSA) signature schemes is valid. Also we assume that the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA. Same thing for Ed25519.
+* All services on a given hostname are controlled by the same person/party
+* We assume that the "unforgeability" property provided by [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_cryptosystem), [ECDSA](https://en.wikipedia.org/wiki/ECDSA) and [Ed25519](http://ed25519.cr.yp.to/) signature schemes is valid. Also we assume that the "random constants" used the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA.
 
 ## Protocols
 
