@@ -124,8 +124,8 @@ Value | Meaning
 ------|--------
 0x00  | Normal (authenticated) HTTP request
 0x01  | Registration
-0x02  | Key rotation
-0x03  | Account deletion
+0x02  | Account deletion
+0x03  | Key rotation
 
 __VerbID :__  
 Here are the values for the different HTTP verbs possible
@@ -221,9 +221,5 @@ The user sends a signed HPKA-Req header with the corresponding actionType value.
 
 As of now, I have written two libraries for HPKA 0.1 :
 
-* [node-hpka](https://github.com/Tashweesh/node-hpka) : server-side authentication library for Node.js, acts as an expressjs middleware
-* [cpp-hpka](https://github.com/Tashweesh/ccp-hpka) : some C++ classes with static methods, letting you build [HPKA client payloads](#hpka-req-protocol). Depends on [Crypto++](http://cryptopp.com) (Doesn't manage the network connections though)
-
-## Example apps
-
-I have written examples that use HPKA (a server in Node.js and a C++/Qt client). Once registered and authenticated, the user can post messages accessible only when s/he is logged in. You can have a look at them [here](https://github.com/Tashweesh/hpka-example). Sorry if it is still badly documented.
+* [node-hpka](https://github.com/Mowje/node-hpka) : server-side authentication library for Node.js, acts as an expressjs middleware
+* [hpka.js](https://github.com/LockateMe/hpka.js) : In browser implementation of HPKA, built to be used with [libsodium](https://github.com/jedisct1/libsodium). Supports Ed25519 only
