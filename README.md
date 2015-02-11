@@ -200,6 +200,7 @@ Value | Meaning
   11  | Username field can't be left blank *
   12  | Forbidden key type *
   13  | Invalid route *
+  14  | Signature expired
 
 Note : Error codes marked with a "*" means that these errors have to be managed on the application level.  
 
