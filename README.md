@@ -115,7 +115,7 @@ __The Req payload is constructed as follows (in that order) :__
 		* publicKey.length (unsigned 16-bit integer) (note that it will usually be always the same size, ie 32 bytes)
 		* publicKey
 
-At this stage, the Req payload is [base64](en.wikipedia.org/wiki/Base64) encoded and then set as the value of the "HPKA-Req" header. That same Req payload (before encoding) has the "verbID|hostname/path" string appended (where "|" is the concatenation operation, example: "0x01|google.com/index.htm"; port numbers are omitted, even if different than 80) to it before being signed (a detached signature, as described earlier); the signature is then base64 encoded as well, before being set as "HPKA-Signature" header value. For signature schemes other than Ed25519, the hash function used is [SHA1](http://en.wikipedia.org/wiki/SHA-1).
+At this stage, the Req payload is [base64](en.wikipedia.org/wiki/Base64) encoded and then set as the value of the "HPKA-Req" header. That same Req payload (before encoding) has the "verbID|hostname/fullpath" string appended to it before being signed (a detached signature, as described earlier); the signature is then base64 encoded as well, before being set as "HPKA-Signature" header value. For signature schemes other than Ed25519, the hash function used is [SHA1](http://en.wikipedia.org/wiki/SHA-1). (Notes for the "verbId|hostname/fullpath" : "|" is the concatenation operation, examples: "0x01|google.com/index.htm" "0x01|service.tld/search?q=test&lang=en"; port numbers are omitted, even if different than 80 or 443; /fullpath is the path followed by the query string if there is one)
 
 __ActionType :__  
 Here are the possible values for the ActionType field, depending on the type of the actual request.
