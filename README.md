@@ -16,7 +16,7 @@ HPKA (acronym for HTTP Public Key Authentication) is an extension of the HTTP pr
 
 It has some features that are useful when you want to run a distributed, federated network.
 
-It would allow adhoc user authentication, registration, deletion and key rotation
+It would allow ad-hoc user authentication, registration, deletion and key rotation
 
 ## Technical overview
 
@@ -25,11 +25,11 @@ On each HTTP request, the client appends some headers. This can happen regardles
 * HPKA-Req: all the details about the action type, username, public key, as described by the protocol below.
 * HPKA-Signature: the signature of the HPKA-Req field content with the host/path of the request concatenated to it (as part of the signed content)
 
-We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS (or a Tor hidden service). The HPKA-Req contains a timestamp, and as of now the [node-hpka](https://github.com/Tashweesh/node-hpka) implementations rejects payload older than 120 seconds. Hence, in case the connection to the server is not encrypted and/or not authenticated, it is possible that an attacker steals an HPKA and uses it within these 2 minutes... This flaw could be dodged by doing some thourough logging server-side for requests youngest than 2 minutes.
+We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS (or a Tor hidden service). The HPKA-Req contains a timestamp, and as of now the [node-hpka](https://github.com/Tashweesh/node-hpka) implementations rejects payload older than 120 seconds. Hence, in case the connection to the server is not encrypted and/or not authenticated, it is possible that an attacker steals an HPKA and uses it within these 2 minutes... This flaw MAY be dodged by doing some thorough logging server-side for requests younger than 2 minutes.
 
 If the headers mentioned above are not present in the HTTP request, then add a "HPKA-Available: 1" header when responding to the client.
 
-If some error occured or some mistake was made in the request, the reponse will have it's status code == 445. In addition to that, it will also carry an additional "HPKA-Error" header; it's value will be just an error number according to the HPKA-Error protocol described below
+If some error occurred or some mistake was made in the request, the response will have it's status code == 445. In addition to that, it will also carry an additional "HPKA-Error" header; it's value will be just an error number according to the HPKA-Error protocol described below
 
 The signature algorithms that could be used (as of now) in HPKA are :
 
@@ -206,7 +206,7 @@ Note : Error codes marked with a "*" means that these errors have to be managed 
 
 ### HPKA User registration
 
-When a user wants to register on the website using his public key, he appends the HPKA-Req (with ActionType == 0x01) and HPKA-Signature fields on a GET request on the website's home page. If the username is available, the server registers it and responds to the user with a "normal" reponse (status code = 200). Otherwise it will return status code 445, with a HPKA-Error: 5
+When a user wants to register on the website using his public key, he appends the HPKA-Req (with ActionType == 0x01) and HPKA-Signature fields on a GET request on the website's home page. If the username is available, the server registers it and responds to the user with a "normal" response (status code = 200). Otherwise it will return status code 445, with a HPKA-Error: 5
 
 If a user wants the server to generate a username for him, the username field from HPKA-Req should be left blank.
 
@@ -216,7 +216,7 @@ The user sends a signed HPKA-Req header with the corresponding actionType value.
 
 ### HPKA Key rotation
 
-The user sends a signed HPKA-Req header with the corresponding actionType value. In addition to that, he sends an other HPKA-Req payload with the containing the new key and with the same actionType value in a "HPKA-NewKey" field. This field is signed by both the acutal key and the new key, and the signatures are respectively sent on "HPKA-NewKeySignature" and "HPKA-NewKeySignature2" fields. The HTTP response is a "normal" one (ie, status code = 200) if it succeeds.
+The user sends a signed HPKA-Req header with the corresponding actionType value. In addition to that, he sends an other HPKA-Req payload with the containing the new key and with the same actionType value in a "HPKA-NewKey" field. This field is signed by both the actual key and the new key, and the signatures are respectively sent on "HPKA-NewKeySignature" and "HPKA-NewKeySignature2" fields. The HTTP response is a "normal" one (ie, status code = 200) if it succeeds.
 
 ## Libraries
 
