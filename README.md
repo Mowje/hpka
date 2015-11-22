@@ -4,7 +4,7 @@
 
 **This is still a draft spec and is potentially subject to change**
 
-Written by Ahmad Ben Mrad
+Written by Ahmad Benmrad
 
 Email : [batikhsouri@gmail.com](mailto:batikhsouri@gmail.com)  
 Twitter : [@BatikhSouri](https://twitter.com/BatikhSouri)  
@@ -25,7 +25,7 @@ On each HTTP request, the client appends some headers. This can happen regardles
 * HPKA-Req: all the details about the action type, username, public key, as described by the protocol below.
 * HPKA-Signature: the signature of the HPKA-Req field content with the host/path of the request concatenated to it (as part of the signed content)
 
-We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS (or a Tor hidden service). The HPKA-Req contains a timestamp, and as of now the [node-hpka](https://github.com/Tashweesh/node-hpka) implementations rejects payload older than 120 seconds. Hence, in case the connection to the server is not encrypted and/or not authenticated, it is possible that an attacker steals an HPKA and uses it within these 2 minutes... This flaw MAY be dodged by doing some thorough logging server-side for requests younger than 2 minutes.
+We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS (or a Tor hidden service). The HPKA-Req contains a timestamp, and as of now the [node-hpka](https://github.com/Mowje/node-hpka) implementations rejects payload older than 120 seconds and more than 30 seconds ahead of time (ie, requests with a timestamp that is not yet past). Hence, in case the connection to the server is not encrypted and/or not authenticated, it is possible that an attacker steals an HPKA and uses it within these 2 minutes... This flaw MAY be dodged by doing some thorough logging server-side for requests younger than 2 minutes.
 
 If the headers mentioned above are not present in the HTTP request, then add a "HPKA-Available: 1" header when responding to the client.
 
