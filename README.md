@@ -20,12 +20,16 @@ It would allow ad-hoc user authentication, registration, deletion and key rotati
 
 ## Technical overview
 
-On each HTTP request, the client appends some headers. This can happen regardless of what HTTP verb is used :
+There two modes of operation, "Session-less HPKA" and "HPKA with sessions". Note that latter is built upon the former.
+
+### Session-less (standard) HPKA
+
+On each HTTP request, the client appends some headers. This can be done regardless of what HTTP verb is used :
 
 * HPKA-Req: all the details about the action type, username, public key, as described by the protocol below.
 * HPKA-Signature: the signature of the HPKA-Req field content with the host/path of the request concatenated to it (as part of the signed content)
 
-We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS (or a Tor hidden service). The HPKA-Req contains a timestamp, and as of now the [node-hpka](https://github.com/Mowje/node-hpka) implementations rejects payload older than 120 seconds and more than 30 seconds ahead of time (ie, requests with a timestamp that is not yet past). Hence, in case the connection to the server is not encrypted and/or not authenticated, it is possible that an attacker steals an HPKA and uses it within these 2 minutes... This flaw MAY be dodged by doing some thorough logging server-side for requests younger than 2 minutes.
+We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS (or a Tor hidden service). The HPKA-Req contains a timestamp, and as of now the [node-hpka](https://github.com/Mowje/node-hpka) implementations rejects payload older than 120 seconds. Hence, in case the connection to the server is not encrypted and/or not authenticated, it is possible that an attacker steals an HPKA and uses it within these 2 minutes... This flaw MAY be dodged by doing some thorough logging server-side for requests younger than 2 minutes.
 
 If the headers mentioned above are not present in the HTTP request, then add a "HPKA-Available: 1" header when responding to the client.
 
@@ -36,17 +40,25 @@ The signature algorithms that could be used (as of now) in HPKA are :
 * [RSA](http://en.wikipedia.org/wiki/RSA_cryptosystem)
 * [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm)
 * [ECDSA](http://en.wikipedia.org/wiki/ECDSA)
-* [Ed25519 (SUPERCOP implementation, as used in libsodium)](http://doc.libsodium.org/public-key_cryptography/public-key_signatures.html)
+* [Ed25519 (SUPERCOP implementation, as used in libsodium)](https://download.libsodium.org/doc/public-key_cryptography/public-key_signatures.html)
+
+### HPKA with session
+
+Getting a session ID
+
+* HPKA Request with actionType == 0x04
+* Returns "HPKA-SessionId", 16 bytes to Base64
+* Subsequent requests can be authenticated by simply adding a "HPKA-Session" header that has the SessionId returned in the previous
 
 ## Security overview
 
-A similar system (client public key authentication) has been implemented through TLS/SSL client certificates. However, the authentication there is done on TLS/SSL level and not HTTP. Furthermore, client certificates are delivered by the server/service and are signed by a CA on delivery. That last point means that it's not possible to use a client certificate to authenticate on an other server that wouldn't recognize the CA used by the server on which the account as created (after an account transfer, for example); hence there would be a CA-dependency, which is potentially something you want to get rid off when you want to run a distributed network of servers.
+A similar system (client public key authentication) has been implemented through TLS/SSL client certificates. However, the authentication there is done on TLS/SSL level and not HTTP. Furthermore, client certificates are delivered by the server/service and are signed by a CA on delivery. That last point means that it's not possible to use a client certificate to authenticate on an other server that wouldn't recognize the CA used by the server on which the account as created (after an account transfer, for example); hence there would be a CA-dependency, which is potentially something you want to get rid of when you want to run a distributed network of servers.
 
-The difference here with HPKA is that the users generates his own key pair and signs his public key with his private key on registration. Then he appends specific HTTP headers on each request, each time with a new signature.
+The difference here with HPKA is that the users generates his own key pair and signs his public key with his private key on registration. Then he appends specific HTTP headers on each request, each time with a new signature (in case of standard, session-less HPKA).
 
 Furthermore, this technique brings some advantages over usual username/password authentication methods. For example, if a badly-built website using that traditional method is "hacked", the hackers can't hack all users at once by dumping a passwords or hashes DB. An other example is that, given a "flawless" web application that uses HPKA, it is probably much harder to hack a specific user account because you would have to compromise the user's device first on order to get the user's private key.
 
-For improved security, the user's key file should use a passphrase, so in case the user's device is compromised in any way, the account would be compromised if and only if the attacker was able to decrypt the key file through an expensive password attack (assuming the user wouldn't give him the password...)
+For improved security, the user's key file should be protected by a passphrase, so in case the user's device is compromised in any way, the account would be compromised if and only if the attacker was able to decrypt the key file through a (hopefully) expensive password attack (assuming the user wouldn't give him the password...)
 
 **Note about the use of the ECDSA:**  
 This protocol supports ECDSA signatures. Note that this algorithm uses the NIST-designed, NSA-approved elliptic curves. We are aware of the Dual-EC-DRBG backdoor implanted by the NSA. And specialists are supposing that these elliptic curves used in ECDSA are also potentially backdoored, because they use magic constants without clear rationale (unlike the curve used in Curve25519/Ed25519 that have been openly specified by researchers from the academic world, and not by government contractors; motives please). So please keep that in mind when using HPKA with ECDSA signatures.
@@ -65,7 +77,7 @@ We describe here our assumptions about the user's computer, and what an attacker
 * The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client, in addition to check the integrity of the requests and responses
 * The server must check that timestamps of requests are "incremental"
 * All services on a given hostname are controlled by the same person/party
-* We assume that the "unforgeability" property provided by [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_cryptosystem), [ECDSA](https://en.wikipedia.org/wiki/ECDSA) and [Ed25519](http://ed25519.cr.yp.to/) signature schemes is valid. Also we assume that the "random constants" used the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA.
+* We assume that the "unforgeability" & "integrity" properties provided by [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_cryptosystem), [ECDSA](https://en.wikipedia.org/wiki/ECDSA) and [Ed25519](http://ed25519.cr.yp.to/) signature schemes is valid. Also we assume that the "random constants" used the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA.
 
 ## Protocols
 
@@ -76,14 +88,14 @@ __NOTES :__
 * Everything is written in Big Endian
 * No encoding is used for key's elements
 * Lengths are expressed in bytes
-* For Ed22519, the chosen implementation (the SUPERCOP implementation) implies that by default the produced [signatures have the signed message concatenated to it](http://blog.mozilla.org/warner/files/2011/11/key-formats.png). In our case, this is useless data overhead, since the signed message can be "reconstructed" from the HPKA-Req header, the path and host values used in the HTTP request. Hence in HPKA we use deteched Ed25519 signatures (which are signatures without the signed message appended to it)
+* For Ed22519, the chosen implementation (the SUPERCOP implementation) implies that by default the produced [signatures have the signed message concatenated to it](http://blog.mozilla.org/warner/files/2011/11/key-formats.png). In our case, this is useless data overhead, since the signed message can be "reconstructed" from the HPKA-Req header, the path and host values used in the HTTP request. Hence in HPKA we use detached Ed25519 signatures (which are signatures without the signed message prepended to it)
 
 __The Req payload is constructed as follows (in that order) :__
 
 * Version number : one byte. Only value for now: 0x01
 * UTC Unix Epoch (timestamp since 1-1-1970 00:00:00 UTC, in seconds) (8 bytes long)
 * Username.length (one byte)
-* Username
+* Username (Username.lenght bytes long)
 * ActionType (one byte)
 * Key type : one byte. Values possible are:
 	* 0x01 for ECDSA
@@ -112,8 +124,13 @@ __The Req payload is constructed as follows (in that order) :__
 		* publicElement.length (unsigned 16-bit integer)
 		* publicElement
 	* If keyType == Ed25519 (== 0x08)
-		* publicKey.length (unsigned 16-bit integer) (note that it will usually be always the same size, ie 32 bytes)
+		* publicKey.length (unsigned 16-bit integer) (note that it will usually be always the same size, i.e 32 bytes)
 		* publicKey
+* If ActionType == SessionIdCreation (== 0x04) Or ActionType == SessionIdDeletion (== 0x05)
+	* SessionId.length (one byte)
+	* SessionId (SessionId.length bytes long)
+* If ActionType == SessionIdCreation (== 0x04)
+	* WantedExpirationDate (As UTC Unix Epoch) (8 bytes long)
 
 At this stage, the Req payload is [base64](en.wikipedia.org/wiki/Base64) encoded and then set as the value of the "HPKA-Req" header. That same Req payload (before encoding) has the "verbID|hostname/fullpath" string appended to it before being signed (a detached signature, as described earlier); the signature is then base64 encoded as well, before being set as "HPKA-Signature" header value. For signature schemes other than Ed25519, the hash function used is [SHA1](http://en.wikipedia.org/wiki/SHA-1). (Notes for the "verbId|hostname/fullpath" : "|" is the concatenation operation, examples: "0x01|google.com/index.htm" "0x01|service.tld/search?q=test&lang=en"; port numbers are omitted, even if different than 80 or 443; /fullpath is the path followed by the query string if there is one)
 
@@ -126,6 +143,8 @@ Value | Meaning
 0x01  | Registration
 0x02  | Account deletion
 0x03  | Key rotation
+0x04  | Session ID creation
+0x05  | Session ID deletion
 
 __VerbID :__  
 Here are the values for the different HTTP verbs possible
@@ -183,12 +202,12 @@ Here are the possible values for the curveID field, and to what curve they corre
 
 ### HPKA-Error protocol
 
-Here is the different error numbers for the HPKA-Error header, in case some error occured
+Here is the different error numbers for the HPKA-Error header, in case some error occurred
 
 Value | Meaning
 ------|---------
   1   | Malformed request
-  2   | Invalid signature
+  2   | Invalid signature or invalid token
   3   | Invalid key *
   4   | Unregistered user *
   5   | Username not available (on registration) *
@@ -202,7 +221,25 @@ Value | Meaning
   13  | Invalid route *
   14  | Signature expired
 
-Note : Error codes marked with a "*" means that these errors have to be managed on the application level.  
+Note : Error codes marked with a "\*" means that these errors have to be managed on the application level.
+
+### HPKA-Session protocol
+
+Even though HPKA was designed with intended usage within distributed networks of servers, users might still connect multiple times to the same server. In that case, it might seem redundant to sign every request.
+
+Instead, the client could go through a special authentication process, less frequently, at the end of which a user-generated SessionId becomes known to the server. The server tells the client when the SessionId will be revoked in the response.
+
+While the SessionId is still valid, subsequent requests by the client will have a "HPKA-Session" header built as follows (in that order) :
+
+* Version number : one byte. Only for now : 0x01
+* Username.length (one byte)
+* Username (Username.length bytes long)
+* SessionId.length (one byte)
+* SessionId (SessionId.length bytes long)
+
+This payload is then encoded to Base64.
+
+A SessionId can be revoked by the client by sending a HPKA-Req with ActionType == 0x05 and the corresponding SessionId.
 
 ### HPKA User registration
 
@@ -212,15 +249,15 @@ If a user wants the server to generate a username for him, the username field fr
 
 ### HPKA User deletion
 
-The user sends a signed HPKA-Req header with the corresponding actionType value. The HTTP response is a "normal" one (ie, status code = 200) if it succeeds.
+The user sends a signed HPKA-Req header with the corresponding actionType value. The HTTP response is a "normal" one (i.e., status code = 200) if it succeeds.
 
 ### HPKA Key rotation
 
-The user sends a signed HPKA-Req header with the corresponding actionType value. In addition to that, he sends an other HPKA-Req payload with the containing the new key and with the same actionType value in a "HPKA-NewKey" field. This field is signed by both the actual key and the new key, and the signatures are respectively sent on "HPKA-NewKeySignature" and "HPKA-NewKeySignature2" fields. The HTTP response is a "normal" one (ie, status code = 200) if it succeeds.
+The user sends a signed HPKA-Req header with the corresponding actionType value. In addition to that, he sends an other HPKA-Req payload with the containing the new key and with the same actionType value in a "HPKA-NewKey" field. This field is signed by both the actual key and the new key, and the signatures are respectively sent on "HPKA-NewKeySignature" and "HPKA-NewKeySignature2" fields. The HTTP response is a "normal" one (i.e., status code = 200) if it succeeds.
 
 ## Libraries
 
 As of now, I have written two libraries for HPKA 0.1 :
 
 * [node-hpka](https://github.com/Mowje/node-hpka) : server-side authentication library for Node.js, acts as an expressjs middleware
-* [hpka.js](https://github.com/LockateMe/hpka.js) : In browser implementation of HPKA, built to be used with [libsodium](https://github.com/jedisct1/libsodium). Supports Ed25519 only
+* [hpka.js](https://github.com/LockateMe/hpka.js) : In browser implementation of HPKA, built to be used with [libsodium.js](https://github.com/jedisct1/libsodium.js). Supports Ed25519 only
