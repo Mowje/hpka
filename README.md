@@ -26,14 +26,14 @@ There two modes of operation, "Session-less HPKA" and "HPKA with sessions". Note
 
 On each HTTP request, the client appends some headers. This can be done regardless of what HTTP verb is used :
 
-* HPKA-Req: all the details about the action type, username, public key, as described by the protocol below.
-* HPKA-Signature: the signature of the HPKA-Req field content with the host/path of the request concatenated to it (as part of the signed content)
+* `HPKA-Req`: all the details about the action type, username, public key, as described by the protocol below.
+* `HPKA-Signature`: the signature of the HPKA-Req field content with the host/path of the request concatenated to it (as part of the signed content)
 
 We should note that this solution as it is now is not safe from MITM attacks when not used over HTTPS (or a Tor hidden service). The HPKA-Req contains a timestamp, and as of now the [node-hpka](https://github.com/Mowje/node-hpka) implementations rejects payload older than 120 seconds. Hence, in case the connection to the server is not encrypted and/or not authenticated, it is possible that an attacker steals an HPKA and uses it within these 2 minutes... This flaw MAY be dodged by doing some thorough logging server-side for requests younger than 2 minutes.
 
-If the headers mentioned above are not present in the HTTP request, then add a "HPKA-Available: 1" header when responding to the client.
+If the headers mentioned above are not present in the HTTP request, then add a `HPKA-Available: 1` header when responding to the client.
 
-If some error occurred or some mistake was made in the request, the response will have it's status code == 445. In addition to that, it will also carry an additional "HPKA-Error" header; it's value will be just an error number according to the HPKA-Error protocol described below
+If some error occurred or some mistake was made in the request, the response will have it's status code == 445. In addition to that, it will also carry an additional `HPKA-Error` header; it's value will be just an error number according to the HPKA-Error protocol described below
 
 The signature algorithms that could be used (as of now) in HPKA are :
 
@@ -44,15 +44,23 @@ The signature algorithms that could be used (as of now) in HPKA are :
 
 ### HPKA with session
 
-Getting a session ID
+Even though HPKA was designed with a target usage within distributed networks of servers, users might still connect multiple times to the same server. In that case, it might seem redundant (and sometimes bad for performance) for sign every request.
 
-* HPKA Request with actionType == 0x04
-* Returns "HPKA-SessionId", 16 bytes to Base64
-* Subsequent requests can be authenticated by simply adding a "HPKA-Session" header that has the SessionId returned in the previous
+Instead, the client go through a special authentication process, less frequently and in a near-periodic manner, at the end of which a user-generated SessionId becomes known to the server in question.
+
+The client could attach a wished expiration date for that SessionId. The server in its response indicates to the client the effective expiration date in a `HPKA-Session-Expiration` header (as UTC Unix Epoch, in seconds). This "session expiration date agreement" is intended to let a server make a session expire before the client wants to, in case the validity period is too long.
+
+The client then uses the agreed-upon SessionId in his subsequent authenticated HTTP requests by adding an `HPKA-Session` header (as described below in the HPKA-Session protocol), instead of using HPKA with ActionType == 0x00.
+
+__NOTE:__ When HPKA sessions are used within a distributed network, the client should not share a given SessionId with more than one server.
+
+__Why not use cookies instead? It has everything you need when using SessionIds.__
+
+No, it doesn't. Although cookies are potentially easier to use, they lack something very important : the ability to be stored safely. Usage of cookies implies that they will most likely be saved in the browser, unencrypted. But since HPKA SessionIds are supposed to replace the usage of a cryptographic keypair (that should be protected by a passphrase, as said below), we must ensure that they are stored securely.
 
 ## Security overview
 
-A similar system (client public key authentication) has been implemented through TLS/SSL client certificates. However, the authentication there is done on TLS/SSL level and not HTTP. Furthermore, client certificates are delivered by the server/service and are signed by a CA on delivery. That last point means that it's not possible to use a client certificate to authenticate on an other server that wouldn't recognize the CA used by the server on which the account as created (after an account transfer, for example); hence there would be a CA-dependency, which is potentially something you want to get rid of when you want to run a distributed network of servers.
+A similar system (public key authentication of clients) has been implemented through TLS/SSL client certificates. However, the authentication there is done on TLS/SSL level and not HTTP. Furthermore, client certificates are delivered by the server/service and are signed by a CA on delivery. That last point means that it's not possible to use a client certificate to authenticate on an other server that wouldn't recognize the CA used by the server on which the account as created (after an account transfer, for example); hence there would be a CA-dependency, which is potentially something you want to get rid of when you want to run a distributed network of servers.
 
 The difference here with HPKA is that the users generates his own key pair and signs his public key with his private key on registration. Then he appends specific HTTP headers on each request, each time with a new signature (in case of standard, session-less HPKA).
 
@@ -74,9 +82,9 @@ We describe here our assumptions about the user's computer, and what an attacker
 * The user's computer
 	* Uses a properly implemented HPKA client
 	* Is not infected by malware
-* The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Equivalently, we must not be able to eavesdrop on a connection between the server and the client, in addition to check the integrity of the requests and responses
-* The server must check that timestamps of requests are "incremental"
-* All services on a given hostname are controlled by the same person/party
+* The service uses [HSTS](http://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security) or a [Tor hidden service](https://www.torproject.org/docs/hidden-services). Alternatively, an attacker must not be able to eavesdrop on a connection between the server and the client, in addition of them having the ability to check the integrity of the requests and responses. Ideally, the client checks the identity of the server by checking his public key or the fingerprint of his certificate using a safe hashing function (i.e. : certificate pinning).
+* The server must check that timestamps of requests are "incremental" (for both Standard HPKA and Session-based HPKA)
+* All services on a given hostname are controlled by the same party
 * We assume that the "unforgeability" & "integrity" properties provided by [DSA](http://en.wikipedia.org/wiki/Digital_Signature_Algorithm), [RSA](https://en.wikipedia.org/wiki/RSA_cryptosystem), [ECDSA](https://en.wikipedia.org/wiki/ECDSA) and [Ed25519](http://ed25519.cr.yp.to/) signature schemes is valid. Also we assume that the "random constants" used the [most common curves](http://www.secg.org/collateral/sec2_final.pdf) are safe in case we choose to use ECDSA.
 
 ## Protocols
@@ -225,21 +233,28 @@ Note : Error codes marked with a "\*" means that these errors have to be managed
 
 ### HPKA-Session protocol
 
-Even though HPKA was designed with intended usage within distributed networks of servers, users might still connect multiple times to the same server. In that case, it might seem redundant to sign every request.
+When a server supports sessions receives an authenticated request of a registered user (i.e. ActionType == 0x00), it can include a `HPKA-Session: 1` header in its response to let the client know of the availability of that feature.
 
-Instead, the client could go through a special authentication process, less frequently, at the end of which a user-generated SessionId becomes known to the server. The server tells the client when the SessionId will be revoked in the response.
+To agree upon a SessionId, the client sends a special HPKA-Req with ActionType == 0x04, that contains the SessionId to be agreed-upon. Optionally, it can contain a wished expiration date for that SessionId. (As described in the HPKA-Req protocol)
 
-While the SessionId is still valid, subsequent requests by the client will have a "HPKA-Session" header built as follows (in that order) :
+If the request is valid, the server responds with a `HPKA-Session-Expiration` header, whose value is the accepted expiration date for the SessionId. If the client provided a wished expiration date, this returned value can only be inferior or equal to the value provided by the client (allowing the server to enforce shorter SessionId lifespans). If the client didn't send a wished expiration date and the server doesn't need to enforce one, the `HPKA-Session-Expiration` can be equal to 0, meaning that SessionId can be used until the client revokes it.
+
+While the SessionId is still valid, subsequent requests by the client will have a `HPKA-Session` header that will replace the `HPKA-Req` and `HPKA-Signature` headers.
+
+__The `HPKA-Session` header built as follows (in that order):__
 
 * Version number : one byte. Only for now : 0x01
 * Username.length (one byte)
 * Username (Username.length bytes long)
+* Timestamp (8 bytes, UTC Unix Epoch, in seconds)
 * SessionId.length (one byte)
 * SessionId (SessionId.length bytes long)
 
 This payload is then encoded to Base64.
 
-A SessionId can be revoked by the client by sending a HPKA-Req with ActionType == 0x05 and the corresponding SessionId.
+A SessionId can be revoked by the client by sending a HPKA-Req with ActionType == 0x05 and the corresponding SessionId. When a server supports SessionIds, it __must__ also support their revocation by the user.
+
+The server can be set-up to disallow HPKA-Session. In that case, it returns `HPKA-Error: 7` when receiving HPKA-Req with ActionType == 0x04 or ActionType == 0x05, or when receiving `HPKA-Session` headers.
 
 ### HPKA User registration
 
