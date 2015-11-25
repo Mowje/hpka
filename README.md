@@ -228,7 +228,7 @@ Value | Meaning
   12  | Forbidden key type *
   13  | Invalid route *
   14  | Signature expired
-  15  | Refused sessionId registration
+  15  | Refused sessionId registration / Error in sessionId revocation
 
 Note : Error codes marked with a "\*" means that these errors have to be managed on the application level.
 
