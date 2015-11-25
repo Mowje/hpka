@@ -228,7 +228,8 @@ Value | Meaning
   12  | Forbidden key type *
   13  | Invalid route *
   14  | Signature expired
-  15  | Refused sessionId registration / Error in sessionId revocation
+  15  | Refused sessionId registration
+  16  | Error in sessionId agreement / revocation
 
 Note : Error codes marked with a "\*" means that these errors have to be managed on the application level.
 
@@ -258,6 +259,8 @@ A SessionId can be revoked by the client by sending a HPKA-Req with ActionType =
 The server can be set-up to disallow HPKA-Session. In that case, it returns `HPKA-Error: 7` when receiving HPKA-Req with ActionType == 0x04 or ActionType == 0x05, or when receiving `HPKA-Session` headers.
 
 If the server choose not to accept a sessionId (for example, too much sessions registered for a given user), it returns a `HPKA-Error: 15` header.
+
+If the server cannot accept/revoke a sessionId, it returns an `HPKA-Error: 16` header.
 
 ### HPKA User registration
 
